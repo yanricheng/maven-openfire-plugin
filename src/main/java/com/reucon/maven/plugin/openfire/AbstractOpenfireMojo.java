@@ -1,5 +1,26 @@
 package com.reucon.maven.plugin.openfire;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
+import java.io.Writer;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+
 import org.apache.maven.archiver.MavenArchiveConfiguration;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.resolver.filter.ScopeArtifactFilter;
@@ -9,12 +30,11 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.archiver.jar.JarArchiver;
-import org.codehaus.plexus.util.*;
-
-import java.io.*;
-import java.util.*;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import org.codehaus.plexus.util.DirectoryScanner;
+import org.codehaus.plexus.util.FileUtils;
+import org.codehaus.plexus.util.IOUtil;
+import org.codehaus.plexus.util.InterpolationFilterReader;
+import org.codehaus.plexus.util.StringUtils;
 
 public abstract class AbstractOpenfireMojo extends AbstractMojo
 {
@@ -105,6 +125,23 @@ public abstract class AbstractOpenfireMojo extends AbstractMojo
      * @parameter expression="${basedir}/target/web.xml"
      */
     private File webXml;
+    
+    /**
+     * Merge the generated fragment file with the web.xml from
+     * webAppSourceDirectory. The merged file will go into the same directory as
+     * the webXmlFragment.
+     * 
+     * @parameter default-value="true"
+     */
+    private boolean mergeFragment;
+    
+    /**
+     * File into which to generate the &lt;servlet&gt; and
+     * &lt;servlet-mapping&gt; tags for the compiled jsps
+     * 
+     * @parameter default-value="${basedir}/target/webfrag.xml"
+     */
+    private String webXmlFragment;
 
     /**
      * The file name mapping to use to copy libraries and tlds. If no file mapping is
@@ -426,11 +463,21 @@ public abstract class AbstractOpenfireMojo extends AbstractMojo
         }
 
         if (webXml != null && StringUtils.isNotEmpty(webXml.getName()))
-        {
-            if (webXml.exists())
+        { 
+        	if (webXml.exists())
             {
+        		if(mergeFragment){
+	        		File fragmentWebXml = new File(webXmlFragment);
+	                if (!fragmentWebXml.exists())
+	                {
+	                    getLog().info(">>>No fragment web.xml file generated");
+	                }
+	                File mergedWebXml = new File(fragmentWebXml.getParentFile(), "web.xml");
+	                copyFileIfModified(mergedWebXml, new File(webinfDir, "/web.xml"));
+               }else{
                 //rename to web.xml
                 copyFileIfModified(webXml, new File(webinfDir, "/web.xml"));
+               }
             }
             else
             {

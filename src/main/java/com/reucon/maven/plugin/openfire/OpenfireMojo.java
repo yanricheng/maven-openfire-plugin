@@ -40,6 +40,8 @@ import java.io.IOException;
  * @phase package
  * @requiresDependencyResolution runtime
  */
+
+
 public class OpenfireMojo extends AbstractOpenfireMojo
 {
     /**
